@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Rideau Canal Safety Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      background: #f4f6f8;
+      color: #222;
+    }
+
+    header {
+      background: #0b3d91;
+      color: white;
+      padding: 1rem 1.5rem;
+    }
+
+    main {
+      padding: 1.5rem;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .summary {
+      margin-bottom: 1rem;
+      font-size: 0.95rem;
+    }
+
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+
+    .card {
+      background: white;
+      border-radius: 12px;
+      padding: 1rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 0.35rem 0.7rem;
+      border-radius: 999px;
+      color: white;
+      font-weight: bold;
+      margin-bottom: 0.8rem;
+    }
+
+    .safe { background: #2e7d32; }
+    .caution { background: #ed6c02; }
+    .unsafe { background: #d32f2f; }
+
+    .metric {
+      margin: 0.35rem 0;
+    }
+
+    .chart-box {
+      background: white;
+      border-radius: 12px;
+      padding: 1rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+
+    canvas {
+      max-height: 420px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Rideau Canal Safety Dashboard</h1>
+    <p>Live aggregated canal conditions from Cosmos DB</p>
+  </header>
+
+  <main>
+    <div class="summary">
+      <strong>Last refreshed:</strong> <span id="lastUpdated">Loading...</span>
+    </div>
+
+    <section class="card-grid" id="cards"></section>
+
+    <section class="chart-box">
+      <h2>Average Ice Thickness by Location</h2>
+      <canvas id="iceChart"></canvas>
+    </section>
+  </main>
+
+  <script>
+    let iceChart;
+
+    function formatValue(value, suffix = "") {
+      if (value === null || value === undefined) return "N/A";
+      return `${Number(value).toFixed(2)}${suffix}`;
+    }
+
+    function renderCards(latest) {
+      const cards = document.getElementById("cards");
+      cards.innerHTML = "";
+
+      latest.forEach(item => {
+        const card = document.createElement("div");
+        card.className = "card";
+
+        card.innerHTML = `
+          <h2>${item.location}</h2>
+          <div class="badge ${item.statusClass}">${item.safetyStatus}</div>
+          <div class="metric"><strong>Window End:</strong> ${item.windowEnd || "N/A"}</div>
+          <div class="metric"><strong>Avg Ice Thickness:</strong> ${formatValue(item.avgIceThickness, " cm")}</div>
+          <div class="metric"><strong>Avg Surface Temp:</strong> ${formatValue(item.avgSurfaceTemp, " °C")}</div>
+          <div class="metric"><strong>Max Snow Accumulation:</strong> ${formatValue(item.maxSnowAccumulation, " cm")}</div>
+          <div class="metric"><strong>Avg External Temp:</strong> ${formatValue(item.avgExternalTemp, " °C")}</div>
+          <div class="metric"><strong>Reading Count:</strong> ${item.readingCount ?? "N/A"}</div>
+        `;
+
+        cards.appendChild(card);
+      });
+    }
+
+    function renderChart(history) {
+      const labels = history["Dow's Lake"]?.map(x => x.windowEnd) || [];
+
+      const datasets = [
+        {
+          label: "Dow's Lake",
+          data: (history["Dow's Lake"] || []).map(x => x.avgIceThickness)
+        },
+        {
+          label: "Fifth Avenue",
+          data: (history["Fifth Avenue"] || []).map(x => x.avgIceThickness)
+        },
+        {
+          label: "NAC",
+          data: (history["NAC"] || []).map(x => x.avgIceThickness)
+        }
+      ];
+
+      const ctx = document.getElementById("iceChart").getContext("2d");
+
+      if (iceChart) {
+        iceChart.destroy();
+      }
+
+      iceChart = new Chart(ctx, {
+        type: "line",
+        data: {
+          labels,
+          datasets
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false
+        }
+      });
+    }
+
+    async function loadDashboard() {
+      const response = await fetch("/api/dashboard");
+      const data = await response.json();
+
+      renderCards(data.latest);
+      renderChart(data.history);
+      document.getElementById("lastUpdated").textContent = data.generatedAt;
+    }
+
+    loadDashboard();
+    setInterval(loadDashboard, 30000);
+  </script>
+</body>
+</html>
