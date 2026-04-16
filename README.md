@@ -1,4 +1,4 @@
-## rideau-canal-dashboard
+## Dashboard Repository
 
 ## Environmental Variables:
 
