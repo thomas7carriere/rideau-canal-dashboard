@@ -73,6 +73,7 @@ COSMOS_CONTAINER: SensorData
 ## Troubleshooting
 
 Problem: Can't connecto to Cosmos DB
+
 Possible Solution:
 - Verify environment variables are configured correctly for the Cosmos DB enndpoint, key, database, and container.
 
