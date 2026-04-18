@@ -70,6 +70,10 @@ COSMOS_CONTAINER: SensorData
 2. To run on Azure App Service, fork this repository and provide it as the deployment source for your Azure Web App. 
 3. Configure your environment variables and set the proper startup command "gunicorn -w 2 -b 0.0.0.0:$PORT app:app"
 
-## Dashboard Features
+## Troubleshooting
+
+Problem: Can't connecto to Cosmos DB
+Possible Solution:
+- Verify environment variables are configured correctly for the Cosmos DB enndpoint, key, database, and container.
 
 
